@@ -1,0 +1,4 @@
+---
+- src: elliotweiser.osx-command-line-tools
+- src: geerlingguy.homebrew
+- src: geerlingguy.mas

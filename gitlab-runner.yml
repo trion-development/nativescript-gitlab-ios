@@ -1,0 +1,36 @@
+---
+- hosts: macs
+
+  vars:
+    gitlab_runner_coordinator_url: 'http://<FILL IN GITLAB HOSTNAME>:8080/'
+    gitlab_runner_registration_token: '<FILL IN GITLAB PASSWORD>'
+    gitlab_runner_tags: 'macos'
+    gitlab_runner_description: macos-runner-01
+
+    homebrew_installed_packages:
+      - gitlab-runner
+    
+  roles:
+    - geerlingguy.homebrew
+    
+  tasks:
+    - name: List configured runners
+      command: gitlab-runner list
+      register: configured_runners
+      changed_when: False
+
+    - name: Register runner to GitLab
+      command: gitlab-runner register >
+        --non-interactive
+        --url '{{ gitlab_runner_coordinator_url }}'
+        --clone-url '{{ gitlab_runner_coordinator_url }}'
+        --registration-token '{{ gitlab_runner_registration_token }}'
+        --tag-list '{{ gitlab_runner_tags }}'
+        --description '{{ gitlab_runner_description }}'
+        --executor shell  
+      when: configured_runners.stderr.find('\n'+gitlab_runner_description) == -1
+    
+    - name: Install gitlab-runner service 
+      shell: gitlab-runner install
+      args:
+        creates: ~/Library/LaunchAgents/gitlab-runner.plist

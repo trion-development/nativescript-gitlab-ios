@@ -1,0 +1,80 @@
+---
+- hosts: macs
+
+# Necessary for elliotweiser.osx-command-line-tools for task 'Am I running on Mac OS X?'
+  gather_facts: true
+  vars:
+    # Can be used if mas works through SSH: https://github.com/mas-cli/mas/issues/128
+    # mas_installed_apps:
+      # - { id: 497799835, name: "Xcode (10.1)" }
+    # mas_upgrade_all_apps: false
+    homebrew_taps:
+      - AdoptOpenJDK/openjdk
+
+    homebrew_installed_packages:
+      - npm
+      - cocoapods
+    
+    homebrew_cask_apps:
+      - adoptopenjdk8
+      - android-sdk
+      - android-platform-tools
+
+  roles:
+    - elliotweiser.osx-command-line-tools
+    - geerlingguy.homebrew
+      # Can be used if mas works through SSH: https://github.com/mas-cli/mas/issues/128
+      # - geerlingguy.mas
+
+  tasks:
+    - name: Set timezone
+      timezone:
+        name: Europe/Berlin
+      become: true
+      
+    - name: Disable computer sleep
+      shell: systemsetup -setcomputersleep Never
+      become: true
+      
+    - name: Disable display sleepx
+      shell: systemsetup -setdisplaysleep Never
+      become: true
+      
+    - name: Disable screen saver
+      shell: defaults -currentHost write com.apple.screensaver 'idleTime' -int "0"
+      
+    - name: Configure .bash_profile
+      copy:
+        content: |
+          export ANDROID_HOME="/usr/local/share/android-sdk"
+          PATH=/usr/local/bin:$PATH
+        dest: $HOME/.bash_profile
+        mode: u=rwx,g=r,o=r
+
+    - name: Configure .bashrc to set PATH for npm
+      copy:
+        content: |
+          export ANDROID_HOME="/usr/local/share/android-sdk"
+          PATH=/usr/local/bin:$PATH
+        dest: $HOME/.bashrc
+        mode: u=rwx,g=r,o=r
+
+    - name: Accept all android / sdkmanager licenses
+      shell: yes | sdkmanager --licenses
+
+    - name: Install android requirements
+      shell: sdkmanager "tools" "emulator" "platform-tools" "platforms;android-28" "build-tools;28.0.3" "extras;android;m2repository" "extras;google;m2repository"
+
+    - name: Install xcodeproj 
+      gem:
+        name: xcodeproj
+        state: present
+
+    - name: Install {N}
+      npm:
+        name: nativescript
+        global: true
+        state: latest
+
+    - name: Execute `tns doctor` to validate environment 
+      shell: tns doctor
